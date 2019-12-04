@@ -11,15 +11,14 @@ import "react-toastify/dist/ReactToastify.css";
 
 import "../styles.css";
 
-import Products from "./Products";
-
 toast.configure();
 
 const STRIPE_PIBLIC_TEST_KEY = "pk_test_zSYvufXGddHIsuW5E4v3r9v0";
 const STRIPE_URL_TEST = "http://localhost:7500/checkout";
 
-export default function Store() {
+export default function StripeCheckoutButton({ product }) {
   const [user, setUser] = useState(null);
+  const [stripeStatus, setStripeStatus] = useState(null);
   const [billingAddresses, setBillingAddresses] = useState(null);
   const [shippingAddresses, setShippingAddresses] = useState(null);
 
@@ -47,27 +46,28 @@ export default function Store() {
       zip: addresses.shipping_address_zip,
       country: addresses.shipping_address_country,
     });
-
-    const response = await axios.post(STRIPE_URL_TEST, {
-      token,
-      product,
-    });
-    console.log(">>>-Response->", response);
-    const { status } = response.data;
-    console.log(">>>-Response.data->", response.data);
-    if (status === "success") {
-      toast("Success! Check email for details", { type: "success" });
-    } else {
-      toast("Something went wrong", { type: "error" });
+    try {
+      const response = await axios.post(STRIPE_URL_TEST, {
+        token,
+        product,
+      });
+      console.log(">>>-Response->", response);
+      if (response.data.status === "success") {
+        setStripeStatus(response.data.status)
+        toast("Success! look for your details", { type: "success" });
+      } else {
+        setStripeStatus(response.data.status)
+        toast("Something went wrong", { type: "error" });
+      }
+    } 
+    catch (err) {
+      console.log(">>>-StripeCheckoutButton-catch-- is the server running? -->");
+      console.log(">>>-StripeCheckoutButton-catch->", err);
     }
   }
 
   return (
-    
-      <div className="product">
-        <h1>{product.name}</h1>
-        <h3>On Sale · ${product.price}</h3>
-      </div>
+      <div>
       <StripeCheckout
         stripeKey={STRIPE_PIBLIC_TEST_KEY}
         token={handleToken}
@@ -78,14 +78,19 @@ export default function Store() {
       />
       <div>
         {user ? (
+          <div>
+          <h5>User</h5>
           <ul>
             <li>{user.name}</li>
             <li>{user.email}</li>
+            <li>{stripeStatus}</li>
           </ul>
+          </div>
         ) : null}
-      </div>
-      <div>
+      
         {billingAddresses ? (
+          <div>
+          <h5>Billing address</h5>
           <ul>
             <li>{billingAddresses.title}</li>
             <li>{billingAddresses.street}</li>
@@ -95,10 +100,12 @@ export default function Store() {
             <li>{billingAddresses.country}</li>
             <li>{billingAddresses.countryCode}</li>
           </ul>
+          </div>
         ) : null}
-      </div>
-      <div>
+      
         {shippingAddresses ? (
+          <div>
+          <h5>Shipping address</h5>
           <ul>
             <li>{shippingAddresses.title}</li>
             <li>{shippingAddresses.street}</li>
@@ -108,8 +115,9 @@ export default function Store() {
             <li>{shippingAddresses.country}</li>
             <li>{shippingAddresses.countryCode}</li>
           </ul>
+          </div>
         ) : null}
       </div>
-    
+    </div>
   );
 }
